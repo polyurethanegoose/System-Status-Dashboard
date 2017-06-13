@@ -399,7 +399,7 @@ def update(request):
         # If this is a request to broadcast an email w/o any other
         # options, then do that and send back to home page
         # Don't check the rest of the form
-        if 'email' in request.POST and 'id' in request.POST and request.POST['detail'] == '':
+        if 'email' in request.POST and 'id' in request.POST and request.POST['detail'] == '' and not 'close' in request.POST:
             if re.match(r'^\d+$', request.POST['id']):
                 email = notify.email()
                 email.send(request.POST['id'],settings.SSD_URL,set_timezone,False)
@@ -418,7 +418,7 @@ def update(request):
             id = form.cleaned_data['id']
 
             # Check if we are re-opening this incident (if its closed)
-            if not 'closed' in form.cleaned_data:
+            if not 'close' in form.cleaned_data:
                 Incident.objects.filter(id=id).update(closed=None)
 
             # Create a datetime object and add the user's timezone
@@ -459,8 +459,9 @@ def update(request):
                 Incident.objects.filter(id=id).update(closed=incident_time)
 
             # If an email update is being requested, send it
-            email = notify.email()
-            email.send(request.POST['id'],settings.SSD_URL,set_timezone,False)
+            if 'email' in request.POST:
+                email = notify.email()
+                email.send(request.POST['id'],settings.SSD_URL,set_timezone,False)
 
             # All done so redirect to the incident detail page so
             # the new data can be seen.
