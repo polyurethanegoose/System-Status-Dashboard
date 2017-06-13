@@ -1,5 +1,5 @@
 #
-# Copyright 2012 - Tom Alessi
+# Copyright 2013 - Tom Alessi
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
    
 
 from django.conf import settings
+from ssd.main import config_value
 
 
 def prefs(request):
@@ -31,7 +32,11 @@ def prefs(request):
     # Hold the values we'll check in a dict
     values = {}
 
+    # Instantiate the configuration value getter
+    cv = config_value.config_value()
+
     # Application Version?
+    # This one is in a settings file
     if hasattr(settings, 'APP_VERSION'):
         if not settings.APP_VERSION == False:
             values['app_version'] = settings.APP_VERSION
@@ -40,47 +45,76 @@ def prefs(request):
     else:
         values['app_version'] = False
 
+    # The rest of the configs are in the database
+    
     # Display the logo?
-    if hasattr(settings, 'LOGO'):
-        if not settings.LOGO == False:
-            values['logo'] = settings.LOGO
-        else:
-            values['logo'] = False
+    if int(cv.value('logo_display')) == 1:
+        # Yes, display it, what's the url
+        logo_url = cv.value('logo_url')
+        values['logo'] = logo_url
     else:
         values['logo'] = False
 
     # Display the nav?
-    if hasattr(settings, 'NAV'):
-        if settings.NAV == True:
-            values['nav'] = True
-        else:
-            values['nav'] = False
+    if int(cv.value('nav_display')) == 1:
+        values['nav'] = True
     else:
         values['nav'] = False
 
-    # Display the contacts?
-    if hasattr(settings, 'CONTACTS'):
-        if settings.CONTACTS == True:
-            values['contacts'] = True
-        else:
-            values['contacts'] = False
+    # Display the escalation?
+    if int(cv.value('escalation_display')) == 1:
+        values['escalation'] = True
     else:
-        values['contacts'] = False
+        values['escalation'] = False
 
     # Display the report incident?
-    if hasattr(settings, 'REPORT_INCIDENT'):
-        if settings.REPORT_INCIDENT == True:
-            values['report_incident'] = True
-        else:
-            values['report_incident'] = False
+    if int(cv.value('report_incident_display')) == 1:
+        values['report_incident'] = True
     else:
         values['report_incident'] = False
+
+    # Display the login link?
+    if int(cv.value('login_display')) == 1:
+        values['login'] = True
+    else:
+        values['login'] = False
 
     # Return values to the template
     return {
             'app_version':values['app_version'],
             'logo':values['logo'],
             'nav':values['nav'],
-            'contacts':values['contacts'],
+            'escalation':values['escalation'],
             'report_incident':values['report_incident'],
+            'login':values['login']
            }
+
+
+def redirect(request):
+    """Set the 'next' Key so that after login events, the user can be 
+    sent back to where they were"""
+
+    # If the @login_required decorator is being used on a view,
+    # then 'next' will already be set so do nothing
+    # Since context_processors must return a dictionary, just give back
+    # what is already in 'next'
+    if request.GET.has_key('next'):
+        return{'next':request.GET['next']}
+
+    # If someone is accessing the login link directly, then set the next
+    # key to the referring page so they can be redirected to the page they 
+    # were on after login
+    elif 'HTTP_REFERER' in request.META:
+
+        # If the referring page is 'http://<quinico server>/accounts/login', then its probably
+        # a failed login, so send them back to the homepage after login
+        # since we don't know the true referrer
+        if request.META['HTTP_REFERER'] == 'http://%s/accounts/login/' % request.META['HTTP_HOST']:
+            return{'next':'/'}
+        else:
+            return{'next':request.META['HTTP_REFERER']}
+
+    # Its not an @login_required view and there is no referrer, so send
+    # them back to the home page after login
+    else:
+        return{'next':'/'}

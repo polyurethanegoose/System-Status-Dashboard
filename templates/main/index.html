@@ -2,7 +2,7 @@
 
 {% comment %}
 
- Copyright 2012 - Tom Alessi
+ Copyright 2013 - Tom Alessi
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -24,159 +24,165 @@
 
    // Date
    $(function() {
-
       $("#jump_to").datepicker({dateFormat: 'yy-mm-dd'});
-
    });
 
+   // Settings Slider
+   $(function() {
+      $("#settings_button").click(function () {
+        $("#settings").slideToggle("slow");
+      });
+    });
 </script>
 
-<div class="wrapper">
-<table class="top">
- <tr>
-  <td colspan="2" style="text-align:left;">
-   <p class="title">System Status Dashboard</p>
-  </td>
- </tr>
- <tr>
-  <td colspan="2" height="15">
- </tr>
+<div class="row">
+  <div class="large-8 columns"></div>
+  <div class="large-4 columns">
+    <div class="panel" id="settings" style="display: none;">
 
- {% if not maintenance == 'none' %}
- <tr>
-  <td colspan="2" style="text-align:center;">
-   <center>
-    <div class="maintenance">
-     {{maintenance|safe}}
-    </center>
-   </div> 
-  </td>
- </tr>
- <tr>
-  <td colspan="2" height="25"></td> 
- </tr>
- {% endif %}
+      <div class="row">
+        <div class="large-11 columns">
+          <p class="small">Set your timezone to adjust all dates/times to your location or jump to a specific date in the calendar.</p>
+        </div>
+      </div>
 
- <tr>
-  <td colspan="2">
-   <table class="standard">
-   {% for row in data %}
-     {% if forloop.first %}
-       <tr>
-        {% for heading in row %}
-         {% if forloop.first %}
-          <th>{{heading}}</th>
-         {% else %}
-          <th>{{heading|date:"Y-m-d"}}<br>{{heading|date:"D"}}</th>
-         {% endif %}
-        {% endfor %}
-       </tr>
-     {% else %}
-      <tr>
-       {% for row1 in row %}
-         {% if forloop.first %}
-           <td>
-           {% if row1 in impaired_services %}
-           <img src="/html/images/incident_red.png">
+      <div class="row">
+        <div class="large-2 columns"><p class="small">Timezone:</p></div>
+        <div class="large-9 columns">
+           <form name="prefs_timezone" id="prefs_timezone" action="/prefs/timezone" method="post">
+           {% csrf_token %}
+             <select name="timezone" id="timezone" onchange='this.form.submit()'>
+             {% for timezone in timezones %}
+              {% if timezone == TIME_ZONE %}
+               <option value="{{timezone}}" selected="true">{{timezone}}</option>
+              {% else %}
+               <option value="{{timezone}}">{{timezone}}</option>
+              {% endif %}
+             {% endfor %}
+             </select>
+          </form>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="large-2 columns"><p class="small">Jump To:</p></div>
+        <div class="large-9 columns">
+          <form name="prefs_jump" action="/prefs/jump" method="post">
+           {% csrf_token %}
+          <input type="text" class="jump_to" name="jump_to" id="jump_to" placeholder="Enter date" onchange='this.form.submit()'/>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="large-11 columns">
+    <p>{{information|safe}}</p>
+  </div>
+  <div class="large-1 columns">
+    <img id="settings_button" data-options="disable-for-touch:true" class="has-top" title="Preferences" src="/html/images/gear.png">
+  </div>
+</div>
+
+<div class="spacer_small"></div>
+
+{% if alert %}
+<div class="row">
+  <div class="large-10 large-centered columns">
+    <div class="panel callout radius" style="background: #D45757;">
+      {{alert}}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+
+<div class="row">
+  <div class="large-12 large-centered columns">
+    <table class="responsive border_top">
+     {% for row in data %}
+       {% if forloop.first %}
+         <tr>
+          {% for heading in row %}
+           {% if forloop.first %}
+            <th style="min-width: 200px;">{{heading}}</th>
            {% else %}
-           <img src="/html/images/incident_green.png">
+            <th style="min-width: 100px;">{{heading|date:"Y-m-d"}}<br>{{heading|date:"D"}}</th>
            {% endif %}
-           {{row1}}
-           </td>
-         {% else %}
-           <td style="text-align:center;">
-           {% for row2 in row1 %}
-             {% if not row2 == 'green' %}
-
-              {# See if the incident is open or closed.  No way to break out of a loop here but there will be only a single match #}
-              {% for incident,detail in incident_status.items %}
-               {% if incident == row2 %} 
-                {% if detail.closed == None %}
-                 <a href="/detail?id={{row2}}"><img src="/html/images/incident_red.png" title="ID: {{row2}} : {{detail.open|date:"Y-m-d H:i:s"}} ~"></a>
-                {% else %}
-                 <a href="/detail?id={{row2}}"><img src="/html/images/incident_orange.png" title="ID: {{row2}} : {{detail.open|date:"Y-m-d H:i:s"}} ~ {{detail.closed|date:"Y-m-d H:i:s"}}"></a>
-                {% endif %}
-               {% endif %}
-              {% endfor %}
-
+          {% endfor %}
+         </tr>
+       {% else %}
+        <tr>
+         {% for row1 in row %}
+           {% if forloop.first %}
+             <td>
+             {# impaired services will take precedence over maintenance #}
+             {% if row1 in impaired_services %}
+             <img src="/html/images/incident_red.png">
+             {% else %}
+              {% if row1 in maintenance_services %}
+               <img src="/html/images/incident_blue.png">
+              {% else %}
+               <img src="/html/images/incident_green.png">
+              {% endif %}
              {% endif %}
-           {% endfor %}
-           </td>
-         {% endif %}
-       {% endfor %}
-      </tr>
-     {% endif %}
-   {% endfor %}
-   </table>
-  </td>
- </tr>
- 
- <tr>
-  <td colspan="2" height="5"></td>
- </tr>
+             {{row1}}
+             </td>
+           {% else %}
+             <td style="text-align:center;">
+             {% for row2 in row1 %}
+               {% if not row2 == 'green' %}
+                 {# We have some events to show, this is an associative array #}
+                 {# See if we have a maintenance or an incident #}
 
- <tr>
-  <td style="text-align:left;">
-   <table>
-    <tr>
-     <td><img src="/html/images/incident_green.png"></td>
-     <td>Service Normal</td>
-     <td><img src="/html/images/incident_red.png"></td>
-     <td>Service Disruption</td>
-     <td><img src="/html/images/incident_orange.png"></td>
-     <td>Service Disruption (resolved)</td>
-    </tr>
-   </table>
-  </td>
-  <td style="text-align:right;">
-   {% if backward_link %}
-   <a href="{{backward_link}}"><<< older</a>
-   {% endif %}
-   {% if forward_link %}
-   <a href="{{forward_link}}">newer >>></a>
-   {% endif %}
-  </td>
- </tr>
+                 {% if row2.type == 'incident' %}
+                   {% if row2.closed == None %}
+                     <a href="/i_detail?id={{row2.id}}"><img src="/html/images/incident_red.png" title="ID: {{row2.id}} : {{row2.open|date:"Y-m-d H:i:s"}} ~"></a>
+                   {% else %}
+                     <a href="/i_detail?id={{row2.id}}"><img src="/html/images/incident_orange.png" title="ID: {{row2.id}} : {{row2.open|date:"Y-m-d H:i:s"}} ~ {{row2.closed|date:"Y-m-d H:i:s"}}"></a>
+                   {% endif %}
+                 {% else %}
+                   {% if row2.type == 'maintenance' %}
+                     <a href="/m_detail?id={{row2.id}}"><img src="/html/images/incident_blue.png" title="ID: {{row2.id}} : {{row2.open|date:"Y-m-d H:i:s"}} ~ {{row2.closed|date:"Y-m-d H:i:s"}}"></a>
+                   {% endif %}
+                 {% endif %}
+               {% endif %}
 
- <tr>
-  <td style="text-align:left;">
-   <table>
-    <tr>
-     <td>Timezone:</td>
-     <td>
-      <form name="prefs_timezone" id="prefs_timezone" action="/prefs/timezone" method="post" style="margin: 0px; padding: 0px;">
-       {% csrf_token %}
-       <select class="timezone" name="timezone" id="timezone" onchange='this.form.submit()'>
-       {% for timezone in timezones %}
-        {% if timezone == TIME_ZONE %}
-         <option value="{{timezone}}" selected="true">{{timezone}}</option>
-        {% else %}
-         <option value="{{timezone}}">{{timezone}}</option>
-        {% endif %}
-       {% endfor %}
-       </select>
-      </form>
-     </td>
-     <td width="10"></td>
-     <td>Jump To:</td>
-     <td>
-      <form name="prefs_jump" id="prefs_jump" action="/prefs/jump" method="post" style="margin: 0px; padding: 0px;">
-       {% csrf_token %}
-      <input type="text" class="jump_to" name="jump_to" id="jump_to" value="" onchange='this.form.submit()'/>
-      </form>
-     </td>
-    </tr>
-   </table>
-  </td>
-  <td style="text-align:right;">
-   {% if app_version %}
-   <a href="http://www.system-status-dashboard.com">SSD</a> v{{app_version}}
-   {% endif %}
-  </td>
- </tr>
+             {% endfor %}
+             </td>
+           {% endif %}
+         {% endfor %}
+        </tr>
+       {% endif %}
+     {% endfor %}
 
-</table>
+         <tr>
+          <td class="td_border_top">
+            {% if backward_link %}
+            <a href="{{backward_link}}"><<< older</a>
+            {% endif %}
 
+            {% if forward_link %}
+            <a href="{{forward_link}}">newer >>></a>
+            {% endif %}
+          </td>
+          <td class="td_border_top" style="text-align: right; font-size: 12px;"><b>Key:</b></td>
+          <td class="td_border_top" colspan="6" style="min-width: 600px; font-size: 12px;">
+            <img src="/html/images/incident_green.png">&nbsp;Service Normal
+            &nbsp;&nbsp;
+            <img src="/html/images/incident_red.png">&nbsp;Service Disruption
+            &nbsp;&nbsp;
+            <img src="/html/images/incident_orange.png">&nbsp;Service Disruption (resolved)
+            &nbsp;&nbsp;
+            <img src="/html/images/incident_blue.png">&nbsp;Planned Maintenance
+          </td>
+        </tr>
+    </table>
+  </div>
 </div>
 
 {% endblock %}

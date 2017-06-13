@@ -1,5 +1,5 @@
 #
-# Copyright 2012 - Tom Alessi
+# Copyright 2013 - Tom Alessi
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,31 +22,40 @@
 """
 
 
-from django.db import models
 import os
 import time
 import uuid
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.files.storage import FileSystemStorage
+from datetime import datetime
 
 
 class Config(models.Model):
-    """Configuration parameters"""
+    """Configuration parameters
 
-    config_name = models.CharField(max_length=50);
-    config_value = models.CharField(max_length=1000);
+    The config_value and description need to be sufficiently large to accommodate
+    enough help text to be useful
+    """
 
-    # Represent the object as unicode
-    def __unicode__(self):
-        return u'%s %s' % (self.config_name,self.config_value)
+    config_name = models.CharField(max_length=50, unique=True)
+    friendly_name = models.CharField(max_length=50, unique=True)
+    config_value = models.CharField(max_length=1000)
+    description = models.CharField(max_length=500,blank=False)
+    category = models.CharField(max_length=15,blank=False)
+    display = models.CharField(max_length=8,blank=False)
 
 
 class Service(models.Model):
     """Services that will be monitored"""
 
-    service_name = models.CharField(max_length=50);
+    service_name = models.CharField(max_length=50, unique=True,null=False,blank=False)
 
-    # Represent the object as unicode
-    def __unicode__(self):
-        return self.service_name
+
+class Recipient(models.Model):
+    """Email addresses that will be used for alerting"""
+
+    email_address = models.CharField(max_length=100,unique=True,null=False,blank=False)
 
 
 class Incident(models.Model):
@@ -54,11 +63,9 @@ class Incident(models.Model):
 
     date = models.DateTimeField(null=False,blank=False)
     closed = models.DateTimeField(null=True)
-    detail = models.CharField(max_length=1000);
-
-    # Represent the objects as unicode
-    def __unicode__(self):
-        return u'%s,%s' % (self.date,self.detail)
+    detail = models.CharField(max_length=1000)
+    email_address = models.ForeignKey(Recipient,null=True,blank=True)
+    user = models.ForeignKey(User)
 
 
 class Incident_Update(models.Model):
@@ -66,11 +73,8 @@ class Incident_Update(models.Model):
 
     date = models.DateTimeField(null=False,blank=False)
     incident = models.ForeignKey(Incident)
-    detail = models.CharField(max_length=1000);
-
-    # Represent the objects as unicode
-    def __unicode__(self):
-        return u'%s %s %s' % (self.date,self.incident,self.detail)
+    detail = models.CharField(max_length=1000)
+    user = models.ForeignKey(User)
 
 
 class Service_Issue(models.Model):
@@ -79,12 +83,42 @@ class Service_Issue(models.Model):
     service_name = models.ForeignKey(Service)
     incident = models.ForeignKey(Incident)
 
-    # Represent the objects as unicode
-    def __unicode__(self):
-        return u'%s %s' % (self.service_name,self.incident)
+
+class Maintenance(models.Model):
+    """Maintenance that has been scheduled"""
+
+    start = models.DateTimeField(null=False,blank=False)
+    end = models.DateTimeField(null=False,blank=False)
+    description = models.CharField(blank=False,max_length=1000)
+    impact = models.CharField(blank=False,max_length=1000)
+    coordinator = models.CharField(blank=False,max_length=1000)
+    email_address = models.ForeignKey(Recipient,null=True,blank=True)
+    user = models.ForeignKey(User)
+    started = models.BooleanField()
+    completed = models.BooleanField()
+
+
+class Maintenance_Update(models.Model):
+    """Updates to incidents"""
+
+    date = models.DateTimeField(default=datetime.now(),null=False,blank=False)
+    maintenance = models.ForeignKey(Maintenance)
+    user = models.ForeignKey(User)
+    detail = models.CharField(max_length=1000)
+
+
+class Service_Maintenance(models.Model):
+    """Used to tie services to scheduled maintenance so that one maintenance can impact multiple services"""
+
+    service_name = models.ForeignKey(Service)
+    maintenance = models.ForeignKey(Maintenance)
+
 
 class Report(models.Model):
     """User reported issues"""
+
+    # Obtain the custom upload location
+    fs = FileSystemStorage(Config.objects.filter(config_name='upload_path').values('config_value')[0]['config_value'])
 
     def _upload_to(instance, filename):
         """Rename uploaded images to a random (standard) name"""
@@ -93,19 +127,30 @@ class Report(models.Model):
         file_path = time.strftime('%Y/%m/%d')
 
         # Create a unique filename
-        #instance.uuid = uuid.uuid4().hex
         file_name = uuid.uuid4().hex
 
         # Save the original extension, if its there
         extension = os.path.splitext(filename)[1]
 
         # Return the path and file
-        return 'screenshots/%s/%s%s' % (file_path,file_name,extension)
+        return 'uploads/screenshots/%s/%s%s' % (file_path,file_name,extension)
 
     date = models.DateTimeField(null=False,blank=False)
-    name = models.CharField(null=False,blank=False,max_length=50);
-    email = models.CharField(null=False,blank=False,max_length=50);
-    description = models.CharField(null=False,blank=False,max_length=160);
-    additional = models.CharField(blank=True,max_length=1000);
-    screenshot1 = models.ImageField(upload_to=_upload_to)
-    screenshot2 = models.ImageField(upload_to=_upload_to)
+    name = models.CharField(null=False,blank=False,max_length=50)
+    email = models.CharField(null=False,blank=False,max_length=50)
+    detail = models.CharField(null=False,blank=False,max_length=160)
+    extra = models.CharField(null=True,blank=True,max_length=1000)
+    screenshot1 = models.ImageField(storage=fs,upload_to=_upload_to)
+    screenshot2 = models.ImageField(storage=fs,upload_to=_upload_to)
+
+
+class Escalation(models.Model):
+    """Escalation Contacts"""
+
+    order = models.PositiveIntegerField(null=False,blank=False)
+    name = models.CharField(null=False,blank=False,max_length=50)
+    contact_details = models.CharField(null=False,blank=False,max_length=160)
+    hidden = models.BooleanField(blank=False)
+
+    class Meta:
+        unique_together = ['name','contact_details']
