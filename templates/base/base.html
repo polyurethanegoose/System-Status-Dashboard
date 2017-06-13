@@ -28,128 +28,123 @@
   <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
 
   <link rel="stylesheet" href="/html/css/foundation.css" />
+  <link rel="stylesheet" href="/html/css/foundicons/general_foundicons.css">
+  <link rel="stylesheet" href="/html/css/foundicons/general_enclosed_foundicons.css">
+  <link rel="stylesheet" href="/html/css/foundicons/accessibility_foundicons.css">
+  <!--[if IE 7]>
+  <link rel="stylesheet" href="/html/css/foundicons/general_foundicons_ie7.css">
+  <link rel="stylesheet" href="/html/css/foundicons/general_enclosed_foundicons_ie7.css">
+  <link rel="stylesheet" href="/html/css/foundicons/accessibility_foundicons_ie7.css">
+  <![endif]-->
+
   <link rel="stylesheet" href="/html/css/normalize.css" />
-  <link rel="stylesheet" href="/html/css/ssd-theme/jquery-ui-1.9.1.custom.min.css"  />
-  <link rel="stylesheet" media="screen"  href="/html/css/responsive-tables.css" />
-  <link rel="StyleSheet" href="/html/css/app.css">
+  <link rel="stylesheet" href="/html/css/smoothness/jquery-ui-1.10.3.custom.min.css"  />
+  <link rel="stylesheet" media="screen" href="/html/css/responsive-tables.css" />
+  <link rel="stylesheet" href="/html/css/jqueryui-editable.css">
+  <link rel="stylesheet" href="/html/css/app.css">
+  <link rel="stylesheet" href="/html/css/ssd.css">
 
   <script type="text/javascript" src="/html/js/vendor/custom.modernizr.js"></script>
   <script type="text/javascript" src="/html/js/jquery-1.8.2.js"></script>
-  <script type="text/javascript" src="/html/js/jquery-ui-1.9.1.custom.min.js"></script>
+  <script type="text/javascript" src="/html/js/jquery-ui-1.10.3.custom.min.js"></script>
   <script type="text/javascript" src="/html/js/ssd.js"></script>
   <script type="text/javascript" src="/html/js/responsive-tables.js"></script>
   <script type="text/javascript" src="/html/js/jquery-ui-timepicker-addon.js"></script>
+  <script type="text/javascript" src="/html/js/jqueryui-editable.min.js"></script>
 
  </head>
  <body>
 
+<div class="contain-to-grid">
+  <nav class="top-bar">
+
+    <ul class="title-area">
+      <li class="name">
+        <h1><a href="/"><span style="color: #005596;">Status</span>Dashboard</a></h1>
+        </span>
+      </li>
+      <li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
+    </ul>
+    <section class="top-bar-section">
+      <!-- Left Nav Section -->
+      <ul class="left">
+        <li class="divider"></li>
+        <li><a href="/search/events">Search Events</a></li>
+
+        {% if ireport %}   
+        <li class="divider"></li>   
+        <li><a href="/ireport">Report Incident</a></li>
+        {% endif %}
+
+        {% if escalation %}
+        <li class="divider"></li>        
+        <li><a href="/escalation">Escalation</a></li>
+        {% endif %}
+
+        {% if admin_link %}
+        <li class="divider">
+        <li><a href="/admin">Admin</a></li>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+        <li class="divider">
+        <li><a href="/accounts/logout">Logout ({{user.username}})</a></li>
+        {% endif %}
+      </ul>
+    </section>
+   </nav>
+</div>
+
+
 {% if logo %}
-<div id="logo_header">
-  <img src="{{logo}}"><br>
+<div class="row">
+  <div class="large-12 columns">
+    <img src="{{logo}}"><br>
+  </div>
 </div>
 {% endif %}
-
-{% if nav %}
-<nav class="top-bar">
-  <ul class="title-area">
-    <li class="name"></li>
-    <!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
-    <li class="toggle-topbar menu-icon"><a href="#"><span>Menu</span></a></li>
-  </ul>
-
-  <section class="top-bar-section">
-    <!-- Left Nav Section -->
-    <ul class="left">
-      <li class="divider"></li>
-      <li ><a href="/">Dashboard</a></li>
-      <li class="divider"></li>
-
-      {% if report_incident %}
-      <li><a href="/report">Report Incident</a></li>
-      <li class="divider"></li>
-      {% endif %}
-
-      {% if escalation %}
-      <li><a href="/escalation">Escalation</a></li>
-      <li class="divider"></li>
-      {% endif %}
-
-      <li class="has-dropdown"><a href="#">Search</a>
-        <ul class="dropdown">
-          <li><a href="/isearch">Incidents</a></li>
-          <li><a href="/rsearch">Incident Reports</a></li>
-          <li><a href="/rsearch_recent">Recent Incident Reports</a></li>
-          <li><a href="/msearch">Scheduled Maintenance</a></li>
-        </ul>
-      </li>
-      <li class="divider"></li>      
-
-      {# If the user is authenticated, show the login menu #}
-      {% if user.is_authenticated %}
-      <li class="has-dropdown"><a href="#">Admin</a>
-        <ul class="dropdown">
-          <li class="has-dropdown"><a href="#">Create</a>
-            <ul class="dropdown">
-              <li><a href="/incident">Incident</a></li>
-              <li><a href="/maintenance">Scheduled Maintenance</a></li>
-            </ul>
-          </li>
-          <li class="has-dropdown"><a href="#">Manage</a>
-            <ul class="dropdown">
-              <li><a href="/contacts">Escalation Contacts</a></li>
-              <li><a href="/recipients">Email Recipients</a></li>
-              <li><a href="/services">Services</a></li>
-            </ul>
-          </li>
-          <li class="has-dropdown"><a href="#">Expert</a>
-            <ul class="dropdown">
-              <li><a href="/config">Configuration Manager</a></li>
-              <li><a href="/admin">DJango Administration</a></li>
-            </ul>
-          </li>
-          <li><a href="/accounts/logout">Logout ({{user.username}})</a></li>
-        </ul>
-      </li>
-      <li class="divider hide-for-small"></li>
-      {% else %}
-        {# If the admins want the login link displayed, even when someone is not authenticated, show it #}
-        {% if login %}
-      <li><a href="/accounts/login">Login</a></li>
-      <li class="divider"></li>
-        {% endif %}
-      {% endif %}
-    </ul>
-
-    <!-- Title Area -->
-    <ul>
-     <li class="name hide-for-small">
-      <h1><a href="#">{{title}}</a></h1>
-    </li>
-    </ul>
-
-    <!-- Right Nav Section -->
-    <div class="hide-for-small hide-for-medium">
-      <ul class="right">
-        <li class="divider show-for-small"></li>
-        <li class="has-form">
-          <a href="http://www.system-status-dashboard.com" title="version: {{app_version}}"><img width="55" height="35" src="/html/images/SSDsmall.png"></a>
-        </li>
-      </ul>
-    </div>
-
-  </section>
-</nav>
-{% endif %}
-
-
+    
 <div class="row">
-  <div class="large-12 large-centered columns">
-  {% block content %}
-
-  {% endblock %}
+  <div class="large-12 columns">    
+    <hr class="header_break"><br>
   </div>
 </div>
 
+<div class="row show-for-small">
+  <div class="large-12 columns">    
+    <br>
+  </div>
+</div>
+      
+{# Source the content from the template #}
+{% block content %}{% endblock %}
+
+<div class="row">
+  <div class="large-12 columns">
+    <br><br><br><br>
+  </div>
+</div>
+
+<div id="sticky_footer">
+  <div class="row">
+    <div class="large-6 columns">
+      <span class="footer">Timezone: {{TIME_ZONE}}</span>
+      <div class="spacer_micro"></div>
+      <form id="timezone_form" action="/prefs/set_timezone" method="post">
+       {% csrf_token %}
+         <select name="tz_pref" id="tz_pref" onchange='this.form.submit()'>
+           <option disabled selected>-- Change Timezone --</option>
+         {% for timezone in timezones %}
+           <option value="{{timezone}}">{{timezone}}</option>
+         {% endfor %}
+         </select>
+      </form>
+    </div>
+    <div class="large-5 columns">
+      <span class="footer">Powered by <a href="http://www.system-status-dashboard.com" title="{{app_version}}">The System Status Dashboard</a></span>
+    </div>
+  </div>
+</div>
 
 <script>
   document.write('<script src=' +

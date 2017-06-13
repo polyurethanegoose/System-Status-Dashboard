@@ -14,4 +14,4 @@
 # limitations under the License.
 
 
-APP_VERSION = '2.0'
+APP_VERSION = '2.1'
