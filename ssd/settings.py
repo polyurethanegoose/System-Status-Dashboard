@@ -204,7 +204,7 @@ CONTACTS = True
 NOTIFY = True
 
 # App Version
-APP_VERSION = '1.1'
+APP_VERSION = '1.0.2'
 
 # SSD Url
 # This URL will appear on any links back to SSD 
@@ -213,4 +213,4 @@ SSD_URL = ''
 
 # Load custom data - must point to your local_settings.py file and
 # may not be a relative path.
-#execfile('<<ENTER FULL PATH>>')
+#execfile('<< ENTER PATH HERE >>')
