@@ -94,7 +94,7 @@ def customize_local_settings(db_user,db_pass,db_host,db_port,dst_local,app_dir,a
         terminate(e)
 
 
-def customize_wsgi_conf(app_dir,django_admin,dst_local,upload_dir):
+def customize_wsgi_conf(app_dir,django_admin,dst_local,wsgi_dir,upload_dir):
     """Customize the SSD wsgi.conf file"""
 
     print 'Customizing %s/wsgi.conf for your installation' % dst_local
@@ -111,6 +111,9 @@ def customize_wsgi_conf(app_dir,django_admin,dst_local,upload_dir):
 
         # Add the path to the DJango admin html static assets
         s_wc = s_wc.replace('$__django_admin__$',django_admin)
+
+        # Add the path to the Apache mod_wsgi.so module
+        s_wc = s_wc.replace('$__wsgi_dir__$',wsgi_dir)
 
         # Add the path to the Screenshot upload directory
         s_wc = s_wc.replace('$__upload_dir__$',upload_dir)
@@ -238,18 +241,19 @@ def install():
 
     print 'PERFORMING FRESH INSTALL:\n'  
 
-    ssd_src=raw_input("1: Enter the path to the SSD source\n#>")
-    local_dir=raw_input('2: Enter the desired local directory location\n#>')
-    web_conf=raw_input('3: Enter the Apache configuration directory\n#>')
-    db_user=raw_input('4: Enter the database username\n#>')
-    db_pass=raw_input('5: Enter the database password\n#>')
-    db_host=raw_input('6: Enter the database server fully qualified hostname or IP address\n#>')
-    db_port=raw_input('7: Enter the database port\n#>')
-    django_admin=raw_input('8: Enter the path to the DJango admin static files\n#>')
-    apache_uid=raw_input('9: Enter the uid of the apache user\n#>')
-    upload_dir=raw_input('10: Enter the path to the screenshot upload directory\n#>')
+    ssd_src=raw_input("1: Enter the path to the SSD source\n#>").strip()
+    local_dir=raw_input('2: Enter the desired local directory location\n#>').strip()
+    web_conf=raw_input('3: Enter the Apache configuration directory\n#>').strip()
+    db_user=raw_input('4: Enter the database username\n#>').strip()
+    db_pass=raw_input('5: Enter the database password\n#>').strip()
+    db_host=raw_input('6: Enter the database server fully qualified hostname or IP address\n#>').strip()
+    db_port=raw_input('7: Enter the database port\n#>').strip()
+    django_admin=raw_input('8: Enter the path to the DJango admin static files\n#>').strip()
+    apache_uid=raw_input('9: Enter the uid of the apache user\n#>').strip()
+    wsgi_dir=raw_input('10: Enter the path to the Apache mod_wsgi.so module\n#>').strip()
+    upload_dir=raw_input('11: Enter the path to the screenshot upload directory\n#>').strip()
 
-    print """You have entered the following options:\n
+    install_text = """You have entered the following options:\n
             - SSD Source            : %s
             - Local Directory       : %s
             - Apache Conf Directory : %s
@@ -259,11 +263,13 @@ def install():
             - Database Port         : %s
             - DJango Admin Location : %s
             - Apache UID            : %s
+            - Path to mod_wsgi.so   : %s
             - Screenshot Directory  : %s
 
-         """ % (ssd_src,local_dir,web_conf,db_user,db_host,db_port,django_admin,apache_uid,upload_dir)
+         """ % (ssd_src,local_dir,web_conf,db_user,db_host,db_port,django_admin,apache_uid,wsgi_dir,upload_dir)
 
-    proceed=raw_input('Proceed with installation (y/n)\n#>')
+    print install_text
+    proceed=raw_input('Proceed with installation (y/n)\n#>').strip()
 
     if proceed == 'y':
         print 'proceeding...'
@@ -271,6 +277,10 @@ def install():
         print 'Exiting installation without modifying anything.'
         exit(0)
 
+    # Write out the install file for debugging issues later
+    install_file = open('install.txt','w')
+    install_file.write(install_text)
+    install_file.close() 
 
     # Determine the SSD source directory and path
     app_dir,ssd_src_dir = split_directories(ssd_src)
@@ -292,7 +302,7 @@ def install():
     customize_local_settings(db_user,db_pass,db_host,db_port,dst_local,app_dir,apache_uid,upload_dir)
 
     # Customize the new wsgi.conf file
-    customize_wsgi_conf(app_dir,django_admin,dst_local,upload_dir)
+    customize_wsgi_conf(app_dir,django_admin,dst_local,wsgi_dir,upload_dir)
 
     # Customize the new wsgi.py file
     customize_wsgi_py(app_dir,dst_local)
@@ -306,27 +316,34 @@ def install():
     # Create the screenshot upload directory
     create_upload(upload_dir,apache_uid)
 
+
 def upgrade():
     """Perform an upgrade of SSD"""
 
     print 'PERFORMING SSD UPGRADE:\n'  
 
-    ssd_src=raw_input("1: Enter the path to the SSD source\n#>")
-    local_dir=raw_input('2: Enter the existing local directory location\n#>')
+    ssd_src=raw_input("1: Enter the path to the SSD source\n#>").strip()
+    local_dir=raw_input('2: Enter the existing local directory location\n#>').strip()
 
-    print """You have entered the following options:\n
+    upgrade_text = """You have entered the following options:\n
             - SSD Source            : %s
             - Local Directory       : %s
 
          """ % (ssd_src,local_dir)
 
-    proceed=raw_input('Proceed with upgrade (y/n)\n#>')
+    print upgrade_text
+    proceed=raw_input('Proceed with upgrade (y/n)\n#>').strip()
 
     if proceed == 'y':
         print 'proceeding...'
     else:
         print 'Exiting upgrade without modifying anything.'
         exit(0)
+
+    # Write out the upgrade file for debugging issues later
+    upgrade_file = open('upgrade.txt','w')
+    upgrade_file.write(upgrade_text)
+    upgrade_file.close() 
 
     # Determine the SSD source directory and path
     app_dir,ssd_src_dir = split_directories(ssd_src)
@@ -360,7 +377,7 @@ Please select an install option:
 1.  Install - install a new instance of SSD
 2.  Upgrade - upgrade from an existing SSD installation
 
-#>""")
+#>""").strip()
 
 
 
@@ -369,5 +386,5 @@ if type == "1":
 elif type == "2":
     upgrade()
 else:
-    terminate(e)
+    terminate('Incorrect option specified')
 
